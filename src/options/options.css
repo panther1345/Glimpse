@@ -1,0 +1,10 @@
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 60px}
+h1{display:flex;align-items:center;gap:10px;font-size:22px}
+.saved{font-size:12px;font-weight:500;color:#16a34a;margin-left:8px}
+section{border:1px solid var(--border);background:var(--bg2);border-radius:12px;padding:16px;margin:16px 0}
+h2{margin:0 0 10px;font-size:16px}
+label{display:flex;flex-direction:column;gap:4px;margin:10px 0;font-weight:500}
+label.check{flex-direction:row;align-items:center;gap:8px;font-weight:400}
+.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.inline input{flex:1}
+.ok{color:#16a34a}.bad{color:var(--danger)}.muted{color:var(--muted);font-size:13px}
+.access-warn{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--danger);border:1px solid var(--danger);border-radius:8px;padding:8px 10px;margin:6px 0}
