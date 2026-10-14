@@ -4,7 +4,7 @@
 
 Glimpse is a Chrome (Manifest V3) extension. Grab a region of the tab, select some text, or open the side panel, and Glimpse sends it to Google Gemini and shows the answer in a small card on the page. You don't need a separate chatbot tab.
 
-> Version **0.2.0** · React + Vite + TypeScript · MIT licensed
+> Version **0.2.0** · React + Vite + TypeScript
 
 ## Demo video
 
@@ -125,6 +125,3 @@ releases/              prebuilt zip
 - It can't capture `chrome://` pages, the Chrome Web Store, or other protected browser pages.
 - AI answers can be wrong, so check anything important.
 - It has been tested on desktop Chrome and should work on Chromium browsers with side panel support.
-
-## License
-[MIT](LICENSE) © 2026 itsblackpanther
