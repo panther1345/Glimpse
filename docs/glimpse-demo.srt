@@ -1,0 +1,47 @@
+1
+00:00:00,300 --> 00:00:04,100
+Glimpse answers questions from your screen, right in the page.
+
+2
+00:00:04,300 --> 00:00:08,100
+Open any page with a question on it.
+
+3
+00:00:08,300 --> 00:00:12,100
+Press Alt+Shift+S and drag around the question (Alt+Shift+F grabs the full tab).
+
+4
+00:00:12,300 --> 00:00:16,100
+The answer streams into an in-page card, no other chatbot opens.
+
+5
+00:00:16,300 --> 00:00:20,100
+Copy or regenerate the answer, with KaTeX math rendering.
+
+6
+00:00:20,300 --> 00:00:24,100
+Ask bot lets you ask follow-up questions in the same card.
+
+7
+00:00:24,300 --> 00:00:28,100
+Select any text and the selection toolbar appears.
+
+8
+00:00:28,300 --> 00:00:32,100
+The menu: Copy, Highlight, Read aloud, Explain, Translate, Summarize and more. Pin your favourites.
+
+9
+00:00:32,300 --> 00:00:36,100
+Pick a target language to translate the selection.
+
+10
+00:00:36,300 --> 00:00:40,100
+Results appear in a card: edit the question, switch model, or continue in chat.
+
+11
+00:00:40,300 --> 00:00:44,100
+Follow-ups keep context and render math cleanly.
+
+12
+00:00:44,300 --> 00:00:48,100
+Load unpacked, add your own Gemini key, and press Alt+Shift+S. MIT licensed.
