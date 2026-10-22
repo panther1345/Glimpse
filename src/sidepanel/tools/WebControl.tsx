@@ -1,17 +1,18 @@
+import { Agent } from './Agent';
 import { useEffect, useState } from 'react';
 import { runLLM } from './llm';
 import { toast } from '../toast';
 
-type Row = Record<string, string>;
-const isWeb = (u?: string) => !!u && /^(https?|file):/.test(u);
+export type Row = Record<string, string>;
+export const isWeb = (u?: string) => !!u && /^(https?|file):/.test(u);
 /** The web page the user is looking at (the side panel itself is never the target). */
-async function targetTab(): Promise<chrome.tabs.Tab | undefined> {
+export async function targetTab(): Promise<chrome.tabs.Tab | undefined> {
   const [t] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (isWeb(t?.url)) return t;
   const all = (await chrome.tabs.query({ active: true })).filter((x) => isWeb(x.url));
   return all.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
 }
-async function access() {
+export async function access() {
   return (await chrome.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false)) || chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false);
 }
 async function inPage<T, A extends any[]>(func: (...a: A) => T, ...args: A): Promise<T> {
@@ -19,19 +20,23 @@ async function inPage<T, A extends any[]>(func: (...a: A) => T, ...args: A): Pro
   const [r] = await chrome.scripting.executeScript({ target: { tabId: t.id }, func: func as any, args });
   return r.result as T;
 }
-const toCSV = (rows: Row[]) => { const cols = [...new Set(rows.flatMap(Object.keys))]; const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.map(q).join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n'); };
-const download = (name: string, data: string, type: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; a.click(); };
-const parseJSON = (t: string) => { const m = /```(?:json)?\s*([\s\S]*?)```/.exec(t); const s = (m ? m[1] : t).trim(); const i = Math.min(...['[', '{'].map((c) => (s.indexOf(c) + 1 || 1e9) - 1)); return JSON.parse(s.slice(i)); };
+export const toCSV = (rows: Row[]) => { const cols = [...new Set(rows.flatMap(Object.keys))]; const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.map(q).join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\n'); };
+export const download = (name: string, data: string, type: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; a.click(); };
+export const parseJSON = (t: string) => { const m = /```(?:json)?\s*([\s\S]*?)```/.exec(t); const s = (m ? m[1] : t).trim(); const i = Math.min(...['[', '{'].map((c) => (s.indexOf(c) + 1 || 1e9) - 1)); return JSON.parse(s.slice(i)); };
 
 /* ---------- presets run inside the page ---------- */
-function domPreset(kind: string): Row[] {
+function domPreset(kind: string): { cols: string[]; data: string[][] } {
+  const rows = domPresetRows(kind); const cols: string[] = [];
+  rows.forEach((r) => Object.keys(r).forEach((k) => { if (!cols.includes(k)) cols.push(k); }));
+  return { cols, data: rows.map((r) => cols.map((c) => r[c] ?? '')) };
+  function domPresetRows(kind: string): Record<string, string>[] {
   const abs = (u: string) => { try { return new URL(u, location.href).href; } catch { return u; } };
   if (kind === 'tables') {
     const out: Row[] = [];
     document.querySelectorAll('table').forEach((t, ti) => {
       const rows = [...t.querySelectorAll('tr')]; if (!rows.length) return;
       const head = [...rows[0].querySelectorAll('th,td')].map((c, i) => (c as HTMLElement).innerText.trim() || `col${i + 1}`);
-      rows.slice(1).forEach((r) => { const o: Row = { table: String(ti + 1) }; [...r.querySelectorAll('th,td')].forEach((c, i) => (o[head[i] || `col${i + 1}`] = (c as HTMLElement).innerText.trim())); out.push(o); });
+      rows.slice(1).forEach((r) => { if (document.querySelectorAll('table').length > 1) void 0; const o: Record<string, string> = {}; [...r.querySelectorAll('th,td')].forEach((c, i) => (o[head[i] || `col${i + 1}`] = (c as HTMLElement).innerText.trim())); if (document.querySelectorAll('table').length > 1) o.table = String(ti + 1); out.push(o); });
     });
     return out;
   }
@@ -40,6 +45,7 @@ function domPreset(kind: string): Row[] {
   if (kind === 'headings') return [...document.querySelectorAll('h1,h2,h3,h4')].map((h) => ({ level: h.tagName, text: (h as HTMLElement).innerText.trim() }));
   if (kind === 'images') return [...document.images].filter((i) => i.src).map((i) => ({ alt: i.alt, src: i.src, size: `${i.naturalWidth}x${i.naturalHeight}` }));
   return [];
+  }
 }
 function pageForAI() {
   const clone = document.body.cloneNode(true) as HTMLElement;
@@ -48,10 +54,10 @@ function pageForAI() {
 }
 
 function Scraper() {
-  const [prompt, setPrompt] = useState(''); const [rows, setRows] = useState<Row[]>([]); const [busy, setBusy] = useState(''); const [err, setErr] = useState('');
-  const preset = async (k: string) => { setErr(''); if (!(await access())) return setErr('Site access is needed.'); try { const r = await inPage(domPreset, k); setRows(r); if (!r.length) setErr(`No ${k} found on this page.`); } catch (e) { setErr((e as Error).message); } };
+  const [prompt, setPrompt] = useState(''); const [rows, setRows] = useState<Row[]>([]); const [order, setOrder] = useState<string[]>([]); const [busy, setBusy] = useState(''); const [err, setErr] = useState('');
+  const preset = async (k: string) => { setErr(''); if (!(await access())) return setErr('Site access is needed.'); try { const x = await inPage(domPreset, k); const r = x.data.map((d) => Object.fromEntries(x.cols.map((c, i) => [c, d[i]]))); setOrder(x.cols); setRows(r); if (!r.length) setErr(`No ${k} found on this page.`); } catch (e) { setErr((e as Error).message); } };
   const ai = async () => {
-    setErr(''); setRows([]); if (!(await access())) return setErr('Site access is needed.');
+    setErr(''); setRows([]); setOrder([]); if (!(await access())) return setErr('Site access is needed.');
     try {
       setBusy('Reading page…'); const pg = await inPage(pageForAI);
       setBusy('Extracting with AI…');
@@ -61,7 +67,7 @@ function Scraper() {
       if (!arr.length) setErr('Nothing matched that request on this page.');
     } catch (e) { setErr((e as Error).message.includes('JSON') ? 'The AI reply was not valid JSON. Try rephrasing.' : (e as Error).message); } finally { setBusy(''); }
   };
-  const cols = [...new Set(rows.flatMap(Object.keys))];
+  const cols = [...new Set([...order, ...rows.flatMap(Object.keys)])];
   return (
     <div className="tool">
       <textarea rows={3} value={prompt} placeholder='What to extract, e.g. "all product names and prices"' onChange={(e) => setPrompt(e.target.value)} />
@@ -147,8 +153,8 @@ function FormFill() {
   );
 }
 
-export function WebControl() {
-  const [tab, setTab] = useState<'scrape' | 'form'>('scrape');
-  return (<div className="tool"><div className="row left"><button className={`btn ${tab === 'scrape' ? 'primary' : ''}`} onClick={() => setTab('scrape')}>Web scraping</button><button className={`btn ${tab === 'form' ? 'primary' : ''}`} onClick={() => setTab('form')}>Auto form fill</button></div>
-    {tab === 'scrape' ? <Scraper /> : <FormFill />}</div>);
+export function WebControl({ initialGoal }: { initialGoal?: string }) {
+  const [tab, setTab] = useState<'agent' | 'scrape' | 'form'>(initialGoal ? 'agent' : 'scrape');
+  return (<div className="tool"><div className="row left"><button className={`btn ${tab === 'agent' ? 'primary' : ''}`} onClick={() => setTab('agent')}>🕹 Take over</button><button className={`btn ${tab === 'scrape' ? 'primary' : ''}`} onClick={() => setTab('scrape')}>Web scraping</button><button className={`btn ${tab === 'form' ? 'primary' : ''}`} onClick={() => setTab('form')}>Auto form fill</button></div>
+    {tab === 'agent' ? <Agent initialGoal={initialGoal} /> : tab === 'scrape' ? <Scraper /> : <FormFill />}</div>);
 }

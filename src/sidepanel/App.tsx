@@ -21,6 +21,7 @@ export function App() {
   const [view, setView] = useState<'chat' | 'history' | 'tools'>('chat');
   const [tool, setTool] = useState<ToolId | null>(null);
   const [hands, setHands] = useState(false);
+  const [goal, setGoal] = useState('');
   const [interim, setInterim] = useState('');
   const recRef = useRef<{ stop: () => void } | null>(null);
   const handsRef = useRef(false); handsRef.current = hands;
@@ -220,10 +221,11 @@ export function App() {
         <button className="icon" title="New chat" onClick={startNew}><I.IcPlus /></button>
         <button className={`icon ${view === 'history' ? 'on' : ''}`} title="History" onClick={() => setView(view === 'history' ? 'chat' : 'history')}><I.IcHistory /></button>
         <button className="icon" title={settings.launcher === false || (settings.launcherHiddenSites || []).length ? 'Show floating button on all sites' : 'Floating button is shown'} onClick={() => saveSettings({ launcher: true, launcherHiddenSites: [] })} style={{ opacity: settings.launcher === false || (settings.launcherHiddenSites || []).length ? 1 : 0.4 }}>👁</button>
+        <button className="icon" title={`Theme: ${settings.theme} (click to change)`} onClick={() => saveSettings({ theme: settings.theme === 'system' ? 'light' : settings.theme === 'light' ? 'dark' : 'system' })}>{settings.theme === 'light' ? '☀' : settings.theme === 'dark' ? '☾' : '◐'}</button>
         <button className="icon" title="Settings" onClick={openOptions}><I.IcGear /></button>
       </header>
 
-      {view === 'tools' ? (tool ? <ToolView id={tool} onBack={() => setTool(null)} voice={settings.voice} /> : <ToolMenu onPick={pickTool} />)
+      {view === 'tools' ? (tool ? <ToolView id={tool} onBack={() => { setTool(null); setGoal(''); }} voice={settings.voice} goal={goal} /> : <ToolMenu onPick={pickTool} />)
       : view === 'history' ? (
         <History currentId={chat.id} onOpen={(c) => { setChat(c); setError(null); setView('chat'); }} onBack={() => setView('chat')} onDeleted={(id) => { if (id === chat.id || id === '*') setChat(newChat()); }} />
       ) : (
@@ -294,6 +296,7 @@ export function App() {
               onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
             <div className="tools">
+              <button className="icon" title="Take over browser: let Glimpse do this task in a tab" onClick={() => { setGoal(input.trim()); setTool('web'); setView('tools'); }}>🕹</button>
               <button className={`icon ${hands ? 'rec' : ''}`} title="Hand: hands-free voice chat" onClick={toggleHands}>🎤</button>
               <button className="icon" title="Screenshot a region (Alt+Shift+S)" onClick={() => capture('region')}><I.IcCrop /></button>
               <button className="icon" title="Screenshot full visible tab (Alt+Shift+F)" onClick={() => capture('tab')}><I.IcTab /></button>

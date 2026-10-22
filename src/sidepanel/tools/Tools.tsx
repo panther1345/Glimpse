@@ -28,11 +28,11 @@ export function ToolMenu({ onPick }: { onPick: (id: ToolId) => void }) {
       <span className="ti">{m.icon}</span><span className="tl"><b>{m.label}</b><small>{m.desc}</small></span><span className="chev">›</span>
     </button>))}</div>;
 }
-export function ToolView({ id, onBack, voice }: { id: ToolId; onBack: () => void; voice?: string }) {
+export function ToolView({ id, onBack, voice, goal }: { id: ToolId; onBack: () => void; voice?: string; goal?: string }) {
   const m = MENU.find((x) => x.id === id)!;
   let body: ReactNode;
   if (TEXT_TOOLS[id]) body = <TextTool key={id} def={TEXT_TOOLS[id]} />;
-  else if (id === 'web') body = <WebControl />;
+  else if (id === 'web') body = <WebControl initialGoal={goal} />;
   else if (id === 'tts') body = <Speak defaultVoice={voice} />;
   else { const C = EXTRA_TOOLS[id]; body = C ? <C /> : null; }
   return <div className="toolview"><div className="tbar"><button className="btn" onClick={onBack}>‹ Tools</button><b>{m.icon} {m.label}</b></div>{body}</div>;

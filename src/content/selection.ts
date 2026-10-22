@@ -1,4 +1,4 @@
-import { host, loadSettings, send, speak, saveSettingsPatch, ICONS } from './util';
+import { host, loadSettings, send, speak, saveSettingsPatch, ICONS, LIGHT_CSS } from './util';
 import { highlightRange, restoreHighlights } from './highlight';
 import { MODEL_SUGGESTIONS, PROVIDERS } from '../lib/providers';
 import type { Settings } from '../lib/storage';
@@ -34,6 +34,7 @@ select option{color:#111;background:#fff}
 .model{display:flex;align-items:center;gap:6px;background:#272b36;border-radius:999px;padding:4px 10px;color:#e8eaf0}
 .model select{color:#e8eaf0;max-width:170px}.foot button{width:28px;height:28px;color:#8f96a8}.foot button:hover{background:#272b36;color:#fff}
 .toast{position:fixed;background:#17191f;color:#fff;font:500 12px system-ui;padding:4px 10px;border-radius:6px}
+${LIGHT_CSS}
 `;
 let saved: { text: string; range: Range | null } = { text: '', range: null };
 const hide = () => { document.getElementById(ID)?.remove(); };

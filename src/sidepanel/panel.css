@@ -51,3 +51,8 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1p
 .gtable{overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:8px}.gtable table{border-collapse:collapse;font-size:12px;width:100%}
 .gtable th,.gtable td{border-bottom:1px solid var(--border);padding:4px 6px;text-align:left;vertical-align:top;word-break:break-word}.gtable th{position:sticky;top:0;background:var(--bg2)}
 .gtable input,.gtable select{width:100%;box-sizing:border-box}.profile{display:flex;flex-direction:column;gap:4px}.profile input{width:60%}
+.takeover{border:1px solid var(--accent);background:var(--bg2);border-radius:12px;padding:10px 12px;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.takeover p{margin:6px 0;color:var(--muted)}.live{color:var(--accent);font-weight:600;animation:b 1.2s infinite}
+.btn.danger{background:#e5484d;color:#fff;border-color:transparent}
+.steplog{font:12px ui-monospace,Consolas,monospace;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;max-height:220px;overflow:auto}
+.steplog div{padding:1px 0}.steplog .err{color:var(--danger)}.steplog .ok{color:#16a34a}.steplog .ask{color:var(--accent)}

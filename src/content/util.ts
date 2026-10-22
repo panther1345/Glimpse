@@ -4,7 +4,7 @@ export async function loadSettings(): Promise<Partial<Settings>> {
 }
 export function host(id: string) {
   document.getElementById(id)?.remove();
-  const el = document.createElement('div'); el.id = id;
+  const el = document.createElement('div'); el.id = id; el.setAttribute('data-glimpse-host', ''); el.setAttribute('data-theme', curTheme);
   el.style.cssText = 'all:initial;position:fixed;z-index:2147483647;top:0;left:0;';
   (document.documentElement || document.body).appendChild(el);
   return { el, root: el.attachShadow({ mode: 'open' }) };
@@ -39,3 +39,34 @@ export const ICONS: Record<string, string> = {
   enter: svg('<path d="M19 6v5a3 3 0 0 1-3 3H6"/><path d="m9 10-4 4 4 4"/>'),
   spark: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'),
 };
+
+/* ---- theme for in-page UI (popup card, selection toolbar, launcher) ---- */
+let curTheme: 'light' | 'dark' = 'dark';
+let pref: string = 'system';
+const resolve = () => (pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+const applyAll = () => { curTheme = resolve(); document.querySelectorAll('[data-glimpse-host]').forEach((e) => e.setAttribute('data-theme', curTheme)); };
+try {
+  loadSettings().then((s) => { pref = (s as any).theme || 'system'; applyAll(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyAll);
+  chrome.storage.onChanged.addListener((c) => { if (c.settings) { pref = (c.settings.newValue as any)?.theme || 'system'; applyAll(); } });
+} catch { /* */ }
+/** Light-theme overrides shared by the in-page UIs (dark is the base style). */
+export const LIGHT_CSS = `
+:host([data-theme=light]) .card,:host([data-theme=light]) .bar,:host([data-theme=light]) .menu{background:#fff!important;color:#1b1e27!important;border-color:#dde0e8!important;box-shadow:0 10px 30px rgba(0,0,0,.15),0 0 0 1px #dde0e8!important}
+:host([data-theme=light]) button{color:#3b4152}
+:host([data-theme=light]) .bar>button:hover,:host([data-theme=light]) .row:hover,:host([data-theme=light]) .hd button:hover,:host([data-theme=light]) .tb button:hover{background:#eef0f5!important;color:#111!important}
+:host([data-theme=light]) .src input,:host([data-theme=light]) .ask input{background:#f4f5f8!important;border-color:#dde0e8!important;color:#1b1e27!important}
+:host([data-theme=light]) .md pre{background:#f1f2f6!important;color:#1b1e27}
+:host([data-theme=light]) .md a,:host([data-theme=light]) .smart,:host([data-theme=light]) .att,:host([data-theme=light]) .tb .cont{color:#4f46e5!important}
+:host([data-theme=light]) .tb .cont,:host([data-theme=light]) .ask button.cam{background:#eef0ff!important}
+:host([data-theme=light]) .tb .copy{background:#e9ebf1!important;color:#1b1e27!important}
+:host([data-theme=light]) .ask{border-color:#e6e8ee!important}
+:host([data-theme=light]) .row .ic,:host([data-theme=light]) .q,:host([data-theme=light]) .meta,:host([data-theme=light]) select{color:#646b7c!important}
+:host([data-theme=light]) .sep,:host([data-theme=light]) .div{background:#dde0e8!important}
+:host([data-theme=light]) .err{color:#c2410c}
+:host([data-theme=dark]) .b{background:#1c1f27!important}
+:host([data-theme=dark]) .x{background:#2b2f3a!important;color:#ddd!important}
+:host([data-theme=light]) .m{background:#fff!important;color:#1b1e27!important;border-color:#dde0e8!important}
+:host([data-theme=light]) .m div:hover{background:#eef0f5!important}
+`;
+export function hostThemeAttr(el: HTMLElement) { el.setAttribute('data-glimpse-host', ''); el.setAttribute('data-theme', curTheme); }

@@ -1,4 +1,4 @@
-import { host, loadSettings, send, saveSettingsPatch } from './util';
+import { host, loadSettings, send, saveSettingsPatch, LIGHT_CSS } from './util';
 import type { Settings } from '../lib/storage';
 // The floating launcher is ONLY a shortcut. Hiding/disabling it never affects other features
 // (selection toolbar, in-page popup, context menus, shortcuts, side panel, background worker).
@@ -19,6 +19,7 @@ function mount() {
   :host(:hover) .x{display:block}
   .m{position:fixed;right:48px;top:calc(45% - 20px);background:#1c1f27;color:#e8eaf0;border:1px solid #2f3340;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.4);padding:5px 0;font:500 13px system-ui,sans-serif;min-width:230px;display:none}
   .m.on{display:block} .m div{padding:7px 14px;cursor:pointer} .m div:hover{background:#272b36}
+${LIGHT_CSS}
   .m small{display:block;padding:4px 14px 6px;color:#8f96a8;font-size:11.5px;border-top:1px solid #2f3340;margin-top:4px}</style>
   <button class="b" title="Open Glimpse (Alt+Shift+G)"><img src="${chrome.runtime.getURL('icons/icon32.png')}" alt=""></button><div class="x" title="Hide button">×</div>
   <div class="m"><div data-a="page">Hide until next visit</div><div data-a="site">Disable on this site</div><div data-a="all">Disable on all sites</div>

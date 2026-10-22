@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import type { Msg, PortOut } from '../lib/messages';
-import { send, speak, loadSettings, ICONS } from './util';
+import { send, speak, loadSettings, ICONS, LIGHT_CSS, hostThemeAttr } from './util';
 import type { SelAction } from '../lib/messages';
 import { buildPrompt, ACTION_TITLES } from '../lib/prompts';
 import { PROVIDERS, MODEL_SUGGESTIONS } from '../lib/providers';
@@ -48,6 +48,7 @@ button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;b
 .ask button.cam{background:#262a36;color:#c9cdd8;padding:6px 8px}
 .ask button[disabled]{opacity:.5;cursor:default}
 .att{font-size:11px;color:#a5b4fc;padding:0 12px 6px}
+${LIGHT_CSS}
 `;
 
 function Md({ text }: { text: string }) {
@@ -178,7 +179,7 @@ let root: Root | null = null;
 function close() { speechSynthesis?.cancel(); root?.unmount(); root = null; document.getElementById(ID)?.remove(); }
 function show(m: Show) {
   close();
-  const el = document.createElement('div'); el.id = ID;
+  const el = document.createElement('div'); el.id = ID; hostThemeAttr(el);
   el.style.cssText = 'all:initial;position:fixed;z-index:2147483646;top:0;left:0;';
   (document.documentElement || document.body).appendChild(el);
   const sh = el.attachShadow({ mode: 'open' });
