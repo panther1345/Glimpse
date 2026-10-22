@@ -3,8 +3,9 @@ import { TextTool } from './TextTool';
 import { TEXT_TOOLS } from './defs';
 import { Speak } from './Speak';
 import { EXTRA_TOOLS } from './extra';
+import { WebControl } from './WebControl';
 
-export type ToolId = 'chat' | 'hand' | 'code' | 'rec' | 'translate' | 'summarize' | 'pdf' | 'write' | 'painter' | 'ocr' | 'grammar' | 'email' | 'tts';
+export type ToolId = 'chat' | 'hand' | 'code' | 'rec' | 'translate' | 'summarize' | 'pdf' | 'write' | 'painter' | 'ocr' | 'grammar' | 'email' | 'tts' | 'web';
 export const MENU: { id: ToolId; label: string; icon: string; desc: string }[] = [
   { id: 'chat', label: 'Chat', icon: '💬', desc: 'Chat with AI, screenshots & images' },
   { id: 'hand', label: 'Hand', icon: '✋', desc: 'Hands-free voice chat' },
@@ -19,6 +20,7 @@ export const MENU: { id: ToolId; label: string; icon: string; desc: string }[] =
   { id: 'grammar', label: 'Grammar', icon: '✔', desc: 'Fix grammar & spelling' },
   { id: 'email', label: 'Email Reply', icon: '✉', desc: 'Draft a reply to an email' },
   { id: 'tts', label: 'Text to Speech', icon: '🔊', desc: 'Read text aloud' },
+  { id: 'web', label: 'Web Control', icon: '🕸', desc: 'Scrape page data · auto-fill forms' },
 ];
 export function ToolMenu({ onPick }: { onPick: (id: ToolId) => void }) {
   return <div className="toolmenu">{MENU.map((m) => (
@@ -30,6 +32,7 @@ export function ToolView({ id, onBack, voice }: { id: ToolId; onBack: () => void
   const m = MENU.find((x) => x.id === id)!;
   let body: ReactNode;
   if (TEXT_TOOLS[id]) body = <TextTool key={id} def={TEXT_TOOLS[id]} />;
+  else if (id === 'web') body = <WebControl />;
   else if (id === 'tts') body = <Speak defaultVoice={voice} />;
   else { const C = EXTRA_TOOLS[id]; body = C ? <C /> : null; }
   return <div className="toolview"><div className="tbar"><button className="btn" onClick={onBack}>‹ Tools</button><b>{m.icon} {m.label}</b></div>{body}</div>;

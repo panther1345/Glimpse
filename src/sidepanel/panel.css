@@ -48,3 +48,6 @@ header{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1p
 .paint img{max-width:100%;border-radius:10px;border:1px solid var(--border)}
 .handbar{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:13px}
 .icon.rec{color:#e5484d}
+.gtable{overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:8px}.gtable table{border-collapse:collapse;font-size:12px;width:100%}
+.gtable th,.gtable td{border-bottom:1px solid var(--border);padding:4px 6px;text-align:left;vertical-align:top;word-break:break-word}.gtable th{position:sticky;top:0;background:var(--bg2)}
+.gtable input,.gtable select{width:100%;box-sizing:border-box}.profile{display:flex;flex-direction:column;gap:4px}.profile input{width:60%}
