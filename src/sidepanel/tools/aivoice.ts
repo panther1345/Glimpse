@@ -21,8 +21,10 @@ export async function aiSpeech(text: string, voice: string): Promise<string> {
         body: JSON.stringify({ model, voice: model === 'playai-tts' ? 'Fritz-PlayAI' : voice || 'autumn', input: text.slice(0, 1200), response_format: 'wav' }) });
       if (r.ok) return URL.createObjectURL(await r.blob());
       if (r.status === 401) throw new Error('Groq key rejected. Check it in Settings.');
+      const t = await r.text().catch(() => '');
+      if (/model_terms_required/.test(t)) throw new Error(`Groq voice needs a one-time terms acceptance: open https://console.groq.com/playground?model=${encodeURIComponent(model)} (org admin), accept, then retry. Or use Browser voice.`);
     }
-    throw new Error('Groq TTS is unavailable for this key (models may need terms accepted in the Groq console). Use Browser voice instead.');
+    throw new Error('Groq TTS is unavailable for this key. Use Browser voice instead.');
   }
   if (s.provider === 'gemini') {
     let err = '';
