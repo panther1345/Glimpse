@@ -169,6 +169,7 @@ export function App() {
         <span className="grow" />
         <button className="icon" title="New chat" onClick={startNew}><I.IcPlus /></button>
         <button className={`icon ${view === 'history' ? 'on' : ''}`} title="History" onClick={() => setView(view === 'history' ? 'chat' : 'history')}><I.IcHistory /></button>
+        <button className="icon" title={settings.launcher === false || (settings.launcherHiddenSites || []).length ? 'Show floating button on all sites' : 'Floating button is shown'} onClick={() => saveSettings({ launcher: true, launcherHiddenSites: [] })} style={{ opacity: settings.launcher === false || (settings.launcherHiddenSites || []).length ? 1 : 0.4 }}>👁</button>
         <button className="icon" title="Settings" onClick={openOptions}><I.IcGear /></button>
       </header>
 

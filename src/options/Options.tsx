@@ -107,6 +107,8 @@ export function Options() {
           </select>
         </label>
         <label className="check"><input type="checkbox" checked={s.launcher} onChange={(e) => up({ launcher: e.target.checked })} /> Show floating launcher button on pages</label>
+        {(s.launcherHiddenSites || []).length > 0 && <p>Floating button hidden on: {(s.launcherHiddenSites || []).map((h) => <span key={h}> {h} <button className="btn" onClick={() => up({ launcherHiddenSites: (s.launcherHiddenSites || []).filter((x) => x !== h) })}>Show again</button></span>)} <button className="btn" onClick={() => up({ launcher: true, launcherHiddenSites: [] })}>Show on all sites</button></p>}
+        <p>Hiding/disabling the floating button only hides it — the selection toolbar, right-click menu, shortcuts and side panel keep working.</p>
         <label className="check"><input type="checkbox" checked={s.selectionToolbar} onChange={(e) => up({ selectionToolbar: e.target.checked })} /> Show toolbar when selecting text</label>
         <label className="check"><input type="checkbox" checked={s.answerInPopup !== false} onChange={(e) => up({ answerInPopup: e.target.checked })} /> Answer in page popup (screenshots and selected text answer in a floating card instead of the side panel)</label>
         <label className="check"><input type="checkbox" checked={s.webSearch !== false} onChange={(e) => up({ webSearch: e.target.checked })} /> Web search (Gemini only: answers current-fact questions using Google Search grounding; falls back to a normal answer if the API rejects it)</label>
