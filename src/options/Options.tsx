@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 const originPattern = (url: string) => { try { const u = new URL(url); return /^https?:$/.test(u.protocol) ? `${u.origin}/*` : null; } catch { return null; } };
 import { type Settings, type ProviderId, getSettings, saveSettings } from '../lib/storage';
 import { PROVIDERS, MODEL_SUGGESTIONS } from '../lib/providers';
-import { groqModels } from '../lib/providers/groq';
+import { groqModels, pickChat } from '../lib/providers/groq';
 import type { PortOut } from '../lib/messages';
 
 const LANGS = ['English', 'Hindi', 'Telugu', 'Tamil', 'Kannada', 'Spanish', 'French', 'German', 'Japanese', 'Chinese (Simplified)', 'Arabic', 'Portuguese', 'Russian'];
@@ -23,6 +23,17 @@ export function Options() {
     setGranted(all || (await chrome.permissions.contains({ origins: [o] }).catch(() => false)));
   };
   const [groqList, setGroqList] = useState<string[]>([]); const [groqMsg, setGroqMsg] = useState('');
+  const loadGroq = async (key: string) => {
+    if (!key) return; setGroqMsg('Loading Groq models…');
+    try {
+      const l = await groqModels(key); setGroqList(l);
+      const cur = (await getSettings()).models.groq;
+      if (!cur || !l.includes(cur)) { const best = pickChat(l); if (best) { setS((x) => x && ({ ...x, models: { ...x.models, groq: best } })); const cs = await getSettings(); await saveSettings({ models: { ...cs.models, groq: best } }); } }
+      setGroqMsg(`${l.length} models available on this key.`);
+    } catch (e) { setGroqMsg((e as Error).message); }
+  };
+  const groqKey = s?.provider === 'groq' ? s.apiKeys.groq || '' : '';
+  useEffect(() => { if (!groqKey) return; const t = setTimeout(() => loadGroq(groqKey), 600); return () => clearTimeout(t); }, [groqKey]);
   useEffect(() => { if (s?.provider === 'custom') checkAccess(baseDraft); }, [s?.provider, baseDraft]);
   if (!s) return null;
   const p = s.provider;
@@ -44,7 +55,7 @@ export function Options() {
     return req;
   };
   const runTest = () => {
-    const req = p === 'custom' ? saveBase() : Promise.resolve(true);
+    const req = p === 'custom' ? saveBase() : p === 'groq' ? loadGroq(s.apiKeys.groq || '').then(() => true) : Promise.resolve(true);
     setTest({ ok: true, msg: 'Testing…' });
     req.then((ok) => {
       if (!ok) return setTest({ ok: false, msg: "Glimpse can't reach this endpoint until access is allowed." });
@@ -94,7 +105,7 @@ export function Options() {
           <input list="models" value={s.models[p] ?? ''} placeholder={PROVIDERS[p].defaultModel} onChange={(e) => up({ models: { ...s.models, [p]: e.target.value.trim() } })} />
           <datalist id="models">{suggestions.map((m) => <option key={m} value={m} />)}</datalist>
         </label>
-        {p === 'groq' && <div className="inline"><button className="btn" disabled={!s.apiKeys.groq} onClick={() => { setGroqMsg('Loading…'); groqModels(s.apiKeys.groq || '').then((l) => { setGroqList(l); setGroqMsg(`${l.length} models loaded. For screenshots/OCR pick a vision model (e.g. meta-llama/llama-4-scout-17b-16e-instruct); image requests auto-switch to it.`); }).catch((e) => setGroqMsg((e as Error).message)); }}>Load Groq models</button>{groqMsg && <span className="muted">{groqMsg}</span>}</div>}
+        {p === 'groq' && <div className="inline"><button className="btn" disabled={!s.apiKeys.groq} onClick={() => loadGroq(s.apiKeys.groq || '')}>Refresh Groq models</button>{groqMsg && <span className="muted">{groqMsg}</span>}</div>}
         <div className="inline"><button className="btn primary" onClick={runTest}>Test connection</button>
           {test && <span className={test.ok ? 'ok' : 'bad'}>{test.msg}</span>}</div>
         <p className="muted">Keys are stored only in this browser (chrome.storage.local) and are sent only to the provider you choose.</p>
