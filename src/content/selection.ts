@@ -44,7 +44,7 @@ function isEditable(n: Node | null) {
 }
 function run(id: string, root: ShadowRoot) {
   const { text, range } = saved;
-  if (id === 'copy') { navigator.clipboard.writeText(text).catch(() => {}); flash(root, 'Copied'); return; }
+  if (id === 'copy') { navigator.clipboard.writeText(text).catch(() => {}); flash(root, 'Copied'); if (S.answerOnCopy !== false && text.length >= 2) { send({ type: 'SELECTION_ACTION', action: 'explain', text, url: location.href }); hide(); } return; }
   if (id === 'highlight') { if (range) highlightRange(range).catch(() => {}); getSelection()?.removeAllRanges(); hide(); return; }
   if (id === 'read') { speak(text, S.voice); return; }
   send({ type: 'SELECTION_ACTION', action: id, text, url: location.href }); hide();
@@ -127,6 +127,17 @@ document.addEventListener('mouseup', (e) => {
     show(text, rect, range);
   }, 10);
 });
+// Copying page text (Ctrl/Cmd+C or right-click Copy) opens the in-page answer card that explains it.
+// Independent of the floating launcher and toolbar; toggle via Settings > "Explain text when I copy it".
+let lastCopy = { t: '', at: 0 };
+document.addEventListener('copy', () => {
+  if (S.answerOnCopy === false || window.top !== window) return;
+  const sel = window.getSelection(); const text = sel?.toString().trim() || '';
+  if (text.length < 2 || text.length > 8000) return;
+  if (isEditable(sel?.anchorNode || null) || isEditable(document.activeElement)) return;
+  const now = Date.now(); if (text === lastCopy.t && now - lastCopy.at < 3000) return; lastCopy = { t: text, at: now };
+  hide(); send({ type: 'SELECTION_ACTION', action: 'explain', text, url: location.href });
+}, true);
 document.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement)?.id !== ID) hide(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
 window.addEventListener('scroll', hide, { passive: true, capture: true });

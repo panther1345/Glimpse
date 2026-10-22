@@ -4,12 +4,12 @@ import type { Msg } from './messages';
 export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'custom';
 export type Settings = {
   provider: ProviderId; apiKeys: Partial<Record<ProviderId, string>>; models: Partial<Record<ProviderId, string>>;
-  baseUrl: string; translateLang: string; theme: 'system' | 'light' | 'dark'; launcher: boolean; launcherHiddenSites: string[]; selectionToolbar: boolean; selectionInInputs: boolean; answerInPopup: boolean;
+  baseUrl: string; translateLang: string; theme: 'system' | 'light' | 'dark'; launcher: boolean; launcherHiddenSites: string[]; selectionToolbar: boolean; selectionInInputs: boolean; answerInPopup: boolean; answerOnCopy: boolean;
   webSearch: boolean; pinned: string[]; voice: string;
 };
 export const DEFAULT_SETTINGS: Settings = {
   provider: 'openai', apiKeys: {}, models: {}, baseUrl: 'http://localhost:11434/v1', translateLang: 'English',
-  theme: 'system', launcher: true, launcherHiddenSites: [], selectionToolbar: true, selectionInInputs: false, answerInPopup: true,
+  theme: 'system', launcher: true, launcherHiddenSites: [], selectionToolbar: true, selectionInInputs: false, answerInPopup: true, answerOnCopy: true,
   webSearch: true, pinned: ['copy', 'highlight', 'explain'], voice: '',
 };
 export async function getSettings(): Promise<Settings> {
