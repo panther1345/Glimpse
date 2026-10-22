@@ -23,7 +23,7 @@ const CSS = `
 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border-radius:7px}
 .hd{display:flex;align-items:center;gap:6px;padding:12px 12px 6px 16px;cursor:move;user-select:none}
 .hd .t{font-weight:700;font-size:17px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hd button{width:26px;height:26px;justify-content:center;color:#8f96a8}.hd button:hover{background:#2b2f3a;color:#fff}.hd button.on{color:#f5c542}
+.hd button{width:26px;height:26px;justify-content:center;color:#8f96a8}.hd button:hover{background:#2b2f3a;color:#fff}.hd button.on{color:#f5c542} .tb button.on{background:#2b2f3a;outline:1px solid #4a5165}
 .src{margin:4px 14px 2px;display:flex}
 .src input{all:unset;flex:1;background:#14161c;border:1px solid #2f3340;border-radius:9px;padding:8px 12px;font-size:13px;color:#c9cdd8;min-width:0}
 .src input:focus{border-color:#6366f1;color:#fff}
@@ -65,7 +65,7 @@ function Card({ init, onClose, setPos }: { init: Show; onClose: () => void; setP
   const [source, setSource] = useState(init.source);
   const [attach, setAttach] = useState<string | undefined>();
   const [hidden, setHidden] = useState(false);
-  const [pin, setPin] = useState(pinned);
+  const [pin, setPin] = useState(pinned); const [vote, setVote] = useState(0);
   const [model, setModel] = useState('');
   const [models, setModels] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
@@ -106,7 +106,7 @@ function Card({ init, onClose, setPos }: { init: Show; onClose: () => void; setP
     });
     if (init.autoSend) { run([firstPrompt(init.source)]); setTimeout(() => cardRef.current?.focus({ preventScroll: true }), 50); }
     else setTimeout(() => inRef.current?.focus(), 50);
-    const onMsg = (m: any) => { if (m?.type === 'POPUP_ATTACH') { suspendOutside = false; setHidden(false); if (m.image) setAttach(m.image); setTimeout(() => inRef.current?.focus(), 50); } };
+    const onMsg = (m: any) => { if (m?.type === 'POPUP_ATTACH') { suspendOutside = false; setHidden(false); if (m.image) setAttach(m.image); if (m.error) setErr(m.error === 'no_access' ? 'Allow site access in the Glimpse window that opened, then press 📷 again.' : "Screenshots aren't available on this page."); setTimeout(() => inRef.current?.focus(), 50); } };
     chrome.runtime.onMessage.addListener(onMsg);
     return () => { chrome.runtime.onMessage.removeListener(onMsg); portRef.current?.disconnect(); speechSynthesis?.cancel(); };
   }, []);
@@ -159,6 +159,8 @@ function Card({ init, onClose, setPos }: { init: Show; onClose: () => void; setP
         <span className="sp" />
         {streaming ? <button onClick={() => portRef.current?.postMessage({ type: 'stop' })}>Stop</button>
           : <button title="Regenerate" disabled={!msgs.length} onClick={() => regen()}><I n="regen" /></button>}
+        <button className={vote === 1 ? 'on' : ''} title="Good answer" disabled={!lastA?.text} onClick={() => setVote(vote === 1 ? 0 : 1)}>👍</button>
+        <button className={vote === -1 ? 'on' : ''} title="Bad answer" disabled={!lastA?.text} onClick={() => setVote(vote === -1 ? 0 : -1)}>👎</button>
         <button title="Read aloud" disabled={!lastA?.text} onClick={() => lastA?.text && speak(lastA.text, voiceRef.current)}><I n="read" /></button>
         <button className="copy" title="Copy (Enter / Ctrl+C)" disabled={!lastA?.text} onClick={copy}>{copied ? 'Copied' : 'Copy'} <kbd><I n="enter" /></kbd></button>
       </div>

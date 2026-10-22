@@ -3,6 +3,11 @@ import { getSettings } from '../lib/storage';
 import { buildPrompt } from '../lib/prompts';
 import { PROVIDERS, ProviderError } from '../lib/providers';
 import { isRestrictedUrl, DIRECT_ANSWER_Q } from '../lib/prompts';
+import { shrinkImage, blobToDataUrl } from '../lib/image';
+const noAccess = (e: unknown) => /permission|activeTab|all_urls|Cannot access|must request/i.test(String((e as Error)?.message || e));
+const hasAll = () => chrome.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false);
+// Content-script clicks are not an extension gesture, so ask once in an extension page.
+function askGrant() { chrome.windows.create({ url: chrome.runtime.getURL('options.html') + '#grant-shots', type: 'popup', width: 480, height: 360 }).catch(() => {}); }
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -55,13 +60,13 @@ async function captureTab(tab?: chrome.tabs.Tab): Promise<CaptureReply> {
   tab ??= await activeTab();
   if (!tab || isRestrictedUrl(tab.url)) return { error: 'restricted_page' };
   try { return { image: await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' }) }; }
-  catch (e) { console.warn('capture failed', e); return { error: 'restricted_page' }; }
+  catch (e) { console.warn('capture failed', e); return { error: noAccess(e) ? 'no_access' : 'restricted_page' }; }
 }
 async function startRegion(tab?: chrome.tabs.Tab): Promise<CaptureReply> {
   tab ??= await activeTab();
   if (!tab?.id || isRestrictedUrl(tab.url)) return { error: 'restricted_page' };
   try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/overlay.js'] }); }
-  catch { return { error: 'restricted_page' }; }
+  catch (e) { return { error: noAccess(e) ? 'no_access' : 'restricted_page' }; }
   regionTab = tab;
   return { pending: true };
 }
@@ -71,10 +76,7 @@ async function crop(dataUrl: string, r: { x: number; y: number; w: number; h: nu
   const sw = Math.min(bmp.width - sx, Math.round(r.w * r.dpr)), sh = Math.min(bmp.height - sy, Math.round(r.h * r.dpr));
   const c = new OffscreenCanvas(sw, sh);
   c.getContext('2d')!.drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
-  const blob = await c.convertToBlob({ type: 'image/png' });
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  return `data:image/png;base64,${btoa(s)}`;
+  return shrinkImage(await blobToDataUrl(await c.convertToBlob({ type: 'image/png' })));
 }
 async function deliverCapture(rep: CaptureReply) {
   if (rep.image) await deliver({ type: 'CAPTURED', image: rep.image });
@@ -159,7 +161,15 @@ chrome.runtime.onMessage.addListener((msg: RuntimeMsg | { type: 'TAKE_PENDING' }
     }
     case 'POPUP_CAPTURE':
       regionMode = 'attach';
-      startRegion(sender.tab).then((r) => { if (!r.pending && sender.tab?.id) { regionMode = 'panel'; toTab(sender.tab.id, { type: 'POPUP_ATTACH' }); } });
+      startRegion(sender.tab).then((r) => { if (!r.pending && sender.tab?.id) { regionMode = 'panel'; if (r.error === 'no_access') askGrant(); toTab(sender.tab.id, { type: 'POPUP_ATTACH', error: r.error }); } });
+      return false;
+    case 'SNAP_REGION':
+      (async () => {
+        if (!(await hasAll())) { askGrant(); return; }
+        regionMode = 'popup';
+        const r = await startRegion(sender.tab);
+        if (!r.pending) { regionMode = 'panel'; if (r.error === 'no_access') askGrant(); else deliverCapture(r); }
+      })();
       return false;
     case 'POPUP_TO_PANEL': {
       openPanel(sender.tab);
@@ -192,10 +202,12 @@ chrome.runtime.onConnect.addListener((port) => {
     const provider = PROVIDERS[s.provider];
     const model = m.model || s.models[s.provider] || provider.defaultModel;
     post({ type: 'meta', model, provider: s.provider });
+    const onModel = (x: string) => { if (x && x !== model) post({ type: 'meta', model: x, provider: s.provider }); };
+    m.messages = await Promise.all(m.messages.map(async (x) => (x.images?.length ? { ...x, images: await Promise.all(x.images.map((u) => shrinkImage(u))) } : x)));
     const apiKey = s.apiKeys[s.provider] || '';
     if (!apiKey && s.provider !== 'custom') return post({ type: 'error', error: { code: 'no_key', message: 'Add an API key to start.' } });
     try {
-      for await (const t of provider.send({ messages: m.messages, model, signal, apiKey, baseUrl: s.baseUrl, webSearch: s.webSearch !== false })) {
+      for await (const t of provider.send({ messages: m.messages, model, signal, apiKey, baseUrl: s.baseUrl, webSearch: s.webSearch !== false, onModel })) {
         if (signal.aborted) break;
         post({ type: 'chunk', text: t });
       }

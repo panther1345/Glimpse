@@ -9,7 +9,7 @@ export async function* openAICompatible(base: string, req: SendReq) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (req.apiKey) headers.Authorization = `Bearer ${req.apiKey}`;
   const r = await doFetch(`${base.replace(/\/$/, '')}/chat/completions`, { method: 'POST', signal: req.signal, headers,
-    body: JSON.stringify({ model: req.model, stream: true, messages: toOpenAI(req.messages) }) });
+    body: JSON.stringify({ model: req.model, stream: true, messages: toOpenAI(req.messages), ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}) }) });
   await checkResponse(r);
   for await (const d of sse(r)) {
     if (d === '[DONE]') return;

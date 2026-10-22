@@ -13,6 +13,7 @@ export function Options() {
   const [show, setShow] = useState(false);
   const [test, setTest] = useState<{ ok: boolean; msg: string } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [grantShots, setGrantShots] = useState(location.hash === '#grant-shots');
   const [baseDraft, setBaseDraft] = useState('');
   const [declined, setDeclined] = useState(false);
   const [granted, setGranted] = useState<boolean | null>(null); // access state for the saved custom base URL
@@ -72,6 +73,8 @@ export function Options() {
   return (
     <div className="wrap">
       <h1><img src="/icons/icon48.png" alt="" width={32} /> Glimpse settings {saved && <span className="saved">Saved</span>}</h1>
+      {grantShots && <div className="card grant"><p><b>Allow screenshots on web pages</b><br />Chrome only lets Glimpse capture a page from a page button after you allow site access once. (Shortcuts Alt+Shift+S / Alt+Shift+F and the right-click menu work without this.)</p>
+        <button className="btn" onClick={() => chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false).then((ok) => { if (ok) { setGrantShots(false); if (history.length <= 1) window.close(); } })}>Allow</button></div>}
 
       <section>
         <h2>AI provider</h2>

@@ -11,16 +11,17 @@ export type RuntimeMsg =
   | { type: 'SELECTION_ACTION'; action: SelAction; text: string; url: string }
   | { type: 'OPEN_PANEL' }
   | { type: 'POPUP_CAPTURE' }
+  | { type: 'SNAP_REGION' }
   | { type: 'POPUP_TO_PANEL'; messages: Msg[] }
   | { type: 'OPEN_OPTIONS' }
   | { type: 'LOAD_CHAT'; messages: Msg[] }
   | { type: 'PANEL_READY' }
   | { type: 'CAPTURED'; image: string }
-  | { type: 'CAPTURE_ERROR'; error: 'restricted_page' | 'failed' }
+  | { type: 'CAPTURE_ERROR'; error: 'restricted_page' | 'failed' | 'no_access' }
   | { type: 'PREFILL'; prompt: string; autoSend: boolean }
   | { type: 'LOAD_CHAT'; messages: Msg[] };
 
-export type CaptureReply = { image?: string; error?: 'restricted_page' | 'failed'; pending?: boolean };
+export type CaptureReply = { image?: string; error?: 'restricted_page' | 'failed' | 'no_access'; pending?: boolean };
 
 // Port "chat"
 export type PortIn = { type: 'start'; messages: Msg[]; model?: string } | { type: 'stop' };

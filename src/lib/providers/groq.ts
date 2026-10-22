@@ -33,6 +33,8 @@ async function saveModel(m: string) {
   try { const { settings } = await chrome.storage.local.get('settings') as any; if (settings) await chrome.storage.local.set({ settings: { ...settings, models: { ...(settings.models || {}), groq: m } } }); } catch { /* */ }
 }
 const notFound = (e: unknown) => e instanceof ProviderError && /404|model_not_found|does not exist|decommissioned|not have access/i.test(e.message);
+// Free-tier Groq models can have tiny output-tokens-per-minute caps (e.g. 1000); the default max_tokens exceeds them.
+const otpmCap: Record<string, number> = {};
 async function* send(req: SendReq): AsyncIterable<string> {
   const img = req.messages.some((m) => m.images?.length);
   let list: string[] = [];
@@ -41,17 +43,27 @@ async function* send(req: SendReq): AsyncIterable<string> {
     if (img) { if (VISION.test(req.model) && (!l.length || l.includes(req.model))) return req.model; return pickVision(l) || req.model; }
     return !l.length || l.includes(req.model) ? req.model : pickChat(l);
   };
-  let model = choose(list);
+  let model = choose(list); req.onModel?.(model);
   if (img && list.length && !pickVision(list) && !VISION.test(model)) throw new ProviderError('other', 'None of the Groq models on this key can read images. Use OpenAI or Gemini for screenshots/OCR.');
   if (!img && model !== req.model && model) { await saveModel(model); yield `_Groq model "${req.model}" isn't available on this key; using ${model}._\n\n`; }
   let started = false;
-  try { for await (const t of openAICompatible(GROQ_BASE, { ...req, model })) { started = true; yield t; } }
+  try { for await (const t of openAICompatible(GROQ_BASE, { ...req, model, maxTokens: otpmCap[model] })) { started = true; yield t; } }
   catch (e) {
+    const cap = !started && e instanceof ProviderError && /\(OTPM (\d+)\)/.exec(e.message);
+    if (cap) { const n = Math.floor(+cap[1] * 0.9); otpmCap[model] = n; yield* openAICompatible(GROQ_BASE, { ...req, model, maxTokens: n }); return; }
+    const w = !started && e instanceof ProviderError && e.code === 'rate_limit' ? /Retry in ([\d.]+)(m?s)/.exec(e.message) : null;
+    const ms = w ? parseFloat(w[1]) * (w[2] === 'ms' ? 1 : 1000) : 0;
+    if (w && ms <= 25000) {
+      yield `_Groq per-minute limit reached on ${model}; retrying in ${Math.ceil(ms / 1000)}s…_\n\n`;
+      await new Promise((r) => setTimeout(r, ms + 500));
+      if (req.signal.aborted) return;
+      yield* openAICompatible(GROQ_BASE, { ...req, model }); return;
+    }
     if (started || !notFound(e)) throw e;
     const l = await cached(req.apiKey, true); const next = choose(l.filter((x) => x !== model));
     if (!next || next === model) throw e;
     if (!img) await saveModel(next);
-    yield `_Groq model "${model}" isn't available; switched to ${next}._\n\n`;
+    req.onModel?.(next); yield `_Groq model "${model}" isn't available; switched to ${next}._\n\n`;
     yield* openAICompatible(GROQ_BASE, { ...req, model: next });
   }
 }

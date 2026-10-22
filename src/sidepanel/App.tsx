@@ -102,6 +102,7 @@ export function App() {
   const handleCapture = (r: CaptureReply) => {
     if (r.image) addImage(r.image);
     else if (r.error === 'restricted_page') setNotice("Screenshots aren't available on this page.");
+    else if (r.error === 'no_access') setNotice('Glimpse needs site access to take screenshots. Click Region/Full tab again and choose Allow.');
     else if (r.error) setNotice('Screenshot failed. Try again.');
   };
   const [askAccess, setAskAccess] = useState<'region' | 'tab' | null>(null);

@@ -1,14 +1,15 @@
 import type { Msg, ChatError } from '../messages';
-export interface SendReq { messages: Msg[]; model: string; signal: AbortSignal; apiKey: string; baseUrl?: string; webSearch?: boolean }
+export interface SendReq { messages: Msg[]; model: string; signal: AbortSignal; apiKey: string; baseUrl?: string; webSearch?: boolean; onModel?: (m: string) => void; maxTokens?: number }
 export interface Provider { id: string; label: string; defaultModel: string; send(req: SendReq): AsyncIterable<string> }
 export class ProviderError extends Error { constructor(public code: ChatError['code'], message: string) { super(message); } }
 
 export async function checkResponse(r: Response) {
   if (r.ok) return;
   let detail = '';
-  try { detail = (await r.text()).slice(0, 300); } catch { /* ignore */ }
+  try { detail = (await r.text()).slice(0, 600); } catch { /* ignore */ }
   if (r.status === 401 || r.status === 403) throw new ProviderError('auth', 'The API key was rejected. Check it in Settings.');
-  if (r.status === 429) throw new ProviderError('rate_limit', 'Rate limited by the provider. Wait a moment and retry.');
+  if (r.status === 429 || r.status === 413) {
+    const otpm = /Request too large[\s\S]*?\(OTPM\): Limit (\d+)/.exec(detail); if (otpm) throw new ProviderError('rate_limit', `Output token limit ${otpm[1]}/min (OTPM ${otpm[1]}) on this model.`); const m = detail; const wait = /try again in ([\d.]+m?s)/i.exec(m)?.[1]; throw new ProviderError('rate_limit', `Rate limited by the provider${/per minute|TPM|RPM/i.test(m) ? ' (per-minute quota on this model)' : ''}. ${wait ? `Retry in ${wait}.` : 'Wait a moment and retry.'}`); }
   throw new ProviderError('other', `Provider error ${r.status}: ${detail}`);
 }
 export async function doFetch(url: string, init: RequestInit) {
