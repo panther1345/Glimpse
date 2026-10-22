@@ -88,17 +88,18 @@ async function paint(prompt: string, size: string): Promise<string> {
     return d?.b64_json ? `data:image/png;base64,${d.b64_json}` : d?.url;
   }
   if (s.provider === 'gemini') {
-    for (const model of ['gemini-2.5-flash-image', 'gemini-2.0-flash-preview-image-generation']) {
+    let last = 0;
+    for (const model of ['gemini-3.1-flash-image', 'gemini-3.1-flash-image-preview', 'gemini-2.5-flash-image', 'gemini-3-pro-image']) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }) });
-      if (r.status === 404) continue;
+      if (r.status === 404 || r.status === 429) { last = r.status; continue; }
       if (!r.ok) throw new Error(`Gemini image error ${r.status}: ${(await r.text()).slice(0, 200)}`);
       const parts = (await r.json()).candidates?.[0]?.content?.parts || [];
       const p = parts.find((x: any) => x.inlineData || x.inline_data); const d = p?.inlineData || p?.inline_data;
       if (d) return `data:${d.mimeType || d.mime_type};base64,${d.data}`;
       throw new Error('Gemini returned no image for this prompt.');
     }
-    throw new Error('No Gemini image model is available for this key.');
+    throw new Error(last === 429 ? 'Your Gemini key has no image-generation quota (free-tier keys get 0 image requests). Enable billing on the key in Google AI Studio, or use an OpenAI key, to use Painter.' : 'No Gemini image model is available for this key.');
   }
   throw new Error(`Image generation isn't available with ${s.provider === 'anthropic' ? 'Anthropic (Claude has no image generation API)' : 'a custom endpoint'}. Switch the provider to OpenAI or Gemini in Settings to use Painter.`);
 }
@@ -119,7 +120,7 @@ function Painter() {
 
 /* ---------------- REC Note ---------------- */
 type Note = { id: string; at: number; title: string; transcript: string; note: string };
-async function transcribe(blob: Blob, live: string): Promise<string> {
+export async function transcribe(blob: Blob, live: string): Promise<string> {
   const s = await getSettings(); const key = s.apiKeys[s.provider] || '';
   if (s.provider === 'openai' && key) {
     const fd = new FormData(); fd.append('file', blob, 'rec.webm'); fd.append('model', 'whisper-1');
@@ -128,7 +129,7 @@ async function transcribe(blob: Blob, live: string): Promise<string> {
   }
   if (s.provider === 'gemini' && key && blob.size < 15e6) {
     const r = runLLM([{ role: 'user', text: 'Transcribe this audio verbatim. Output only the transcript.', images: [await blobToDataUrl(blob)] }], () => {});
-    try { const t = await r.done; if (t.trim()) return t; } catch { /* fall back */ }
+    try { const t = await r.done; if (t.trim()) return t; } catch (e) { if (!live.trim()) throw new Error('Transcription failed: ' + (e as Error).message); }
   }
   return live;
 }

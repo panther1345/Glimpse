@@ -8,7 +8,9 @@ import { History } from './History';
 import { toast } from './toast';
 import * as I from './icons';
 import { ToolMenu, ToolView, type ToolId } from './tools/Tools';
-import { dictate, ensureMic, speechSupported } from './tools/speech';
+import { dictate, ensureMic, speechSupported, recordUtterance } from './tools/speech';
+import { transcribe } from './tools/extra';
+import { aiSpeech } from './tools/aivoice';
 import { speakText } from './tools/say';
 
 const newChat = (): Chat => ({ id: crypto.randomUUID(), title: '', createdAt: Date.now(), updatedAt: Date.now(), model: '', messages: [] });
@@ -163,6 +165,20 @@ export function App() {
 
   // Hand: hands-free voice chat (dictate -> send -> read answer aloud -> listen again)
   const listen = async () => {
+    const aiStt = settings?.provider === 'openai' || settings?.provider === 'gemini';
+    if (aiStt) {
+      if (!(await ensureMic())) { setNotice('Allow the microphone in the tab that opened, then press the mic again.'); setHands(false); return; }
+      setInterim('Listening…');
+      const r = recordUtterance((sp) => setInterim(sp ? 'Listening… (hearing you)' : 'Listening…')); recRef.current = r;
+      try {
+        const blob = await r.done; recRef.current = null;
+        if (!handsRef.current) { setInterim(''); return; }
+        if (!blob.size) { setInterim(''); setNotice('Didn\'t hear anything. Press the mic to try again.'); setHands(false); return; }
+        setInterim('Transcribing…'); const said = (await transcribe(blob, '')).trim(); setInterim('');
+        if (said) sendRef.current(said, []); else { setNotice('Could not understand the audio.'); setHands(false); }
+      } catch (e) { setInterim(''); setNotice('Mic error: ' + (e as Error).message); setHands(false); }
+      return;
+    }
     if (!speechSupported()) { setNotice('Voice input is not supported in this browser.'); setHands(false); return; }
     if (!(await ensureMic())) { setNotice('Allow the microphone in the tab that opened, then press the mic again.'); setHands(false); return; }
     let said = '';
@@ -175,7 +191,11 @@ export function App() {
   useEffect(() => {
     if (wasStreaming.current && !streaming && handsRef.current) {
       const last = chatRef.current.messages[chatRef.current.messages.length - 1];
-      if (last?.role === 'assistant' && last.text) speakText(last.text, settings?.voice, () => { if (handsRef.current) listen(); });
+      const again = () => { if (handsRef.current) listen(); };
+      if (last?.role === 'assistant' && last.text) {
+        if (speechSynthesis.getVoices().length) speakText(last.text, settings?.voice, again);
+        else aiSpeech(last.text.slice(0, 1500), '').then((u) => { const a = new Audio(u); a.onended = again; a.onerror = again; a.play().catch(again); }).catch(again);
+      }
       else setHands(false);
     }
     wasStreaming.current = streaming;
