@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 const originPattern = (url: string) => { try { const u = new URL(url); return /^https?:$/.test(u.protocol) ? `${u.origin}/*` : null; } catch { return null; } };
 import { type Settings, type ProviderId, getSettings, saveSettings } from '../lib/storage';
 import { PROVIDERS, MODEL_SUGGESTIONS } from '../lib/providers';
+import { groqModels } from '../lib/providers/groq';
 import type { PortOut } from '../lib/messages';
 
 const LANGS = ['English', 'Hindi', 'Telugu', 'Tamil', 'Kannada', 'Spanish', 'French', 'German', 'Japanese', 'Chinese (Simplified)', 'Arabic', 'Portuguese', 'Russian'];
@@ -21,9 +22,11 @@ export function Options() {
     const all = await chrome.permissions.contains({ origins: ['<all_urls>'] }).catch(() => false);
     setGranted(all || (await chrome.permissions.contains({ origins: [o] }).catch(() => false)));
   };
+  const [groqList, setGroqList] = useState<string[]>([]); const [groqMsg, setGroqMsg] = useState('');
   useEffect(() => { if (s?.provider === 'custom') checkAccess(baseDraft); }, [s?.provider, baseDraft]);
   if (!s) return null;
   const p = s.provider;
+  const suggestions = p === 'groq' && groqList.length ? groqList : MODEL_SUGGESTIONS[p];
   const up = async (patch: Partial<Settings>) => { setS({ ...s, ...patch }); setTest(null); await saveSettings(patch); setSaved(true); setTimeout(() => setSaved(false), 1200); };
 
   /** Must be called synchronously from a click: requests the origin unless all-sites or that origin is already granted. */
@@ -89,8 +92,9 @@ export function Options() {
         </>)}
         <label>Model (must support images for screenshots)
           <input list="models" value={s.models[p] ?? ''} placeholder={PROVIDERS[p].defaultModel} onChange={(e) => up({ models: { ...s.models, [p]: e.target.value.trim() } })} />
-          <datalist id="models">{MODEL_SUGGESTIONS[p].map((m) => <option key={m} value={m} />)}</datalist>
+          <datalist id="models">{suggestions.map((m) => <option key={m} value={m} />)}</datalist>
         </label>
+        {p === 'groq' && <div className="inline"><button className="btn" disabled={!s.apiKeys.groq} onClick={() => { setGroqMsg('Loading…'); groqModels(s.apiKeys.groq || '').then((l) => { setGroqList(l); setGroqMsg(`${l.length} models loaded. For screenshots/OCR pick a vision model (e.g. meta-llama/llama-4-scout-17b-16e-instruct); image requests auto-switch to it.`); }).catch((e) => setGroqMsg((e as Error).message)); }}>Load Groq models</button>{groqMsg && <span className="muted">{groqMsg}</span>}</div>}
         <div className="inline"><button className="btn primary" onClick={runTest}>Test connection</button>
           {test && <span className={test.ok ? 'ok' : 'bad'}>{test.msg}</span>}</div>
         <p className="muted">Keys are stored only in this browser (chrome.storage.local) and are sent only to the provider you choose.</p>

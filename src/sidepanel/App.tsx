@@ -166,7 +166,7 @@ export function App() {
 
   // Hand: hands-free voice chat (dictate -> send -> read answer aloud -> listen again)
   const listen = async () => {
-    const aiStt = settings?.provider === 'openai' || settings?.provider === 'gemini';
+    const aiStt = settings?.provider === 'openai' || settings?.provider === 'gemini' || settings?.provider === 'groq';
     if (aiStt) {
       if (!(await ensureMic())) { setNotice('Allow the microphone in the tab that opened, then press the mic again.'); setHands(false); return; }
       setInterim('Listening…');

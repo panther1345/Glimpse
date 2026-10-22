@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { Msg } from './messages';
 
-export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'custom';
+export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'groq' | 'custom';
 export type Settings = {
   provider: ProviderId; apiKeys: Partial<Record<ProviderId, string>>; models: Partial<Record<ProviderId, string>>;
   baseUrl: string; translateLang: string; theme: 'system' | 'light' | 'dark'; launcher: boolean; launcherHiddenSites: string[]; selectionToolbar: boolean; selectionInInputs: boolean; answerInPopup: boolean; answerOnCopy: boolean;

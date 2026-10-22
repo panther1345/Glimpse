@@ -101,6 +101,7 @@ async function paint(prompt: string, size: string): Promise<string> {
     }
     throw new Error(last === 429 ? 'Your Gemini key has no image-generation quota (free-tier keys get 0 image requests). Enable billing on the key in Google AI Studio, or use an OpenAI key, to use Painter.' : 'No Gemini image model is available for this key.');
   }
+  if (s.provider === 'groq') throw new Error('Image generation is not supported by Groq (it has no image API). Switch the provider to OpenAI or Gemini in Settings to use Painter.');
   throw new Error(`Image generation isn't available with ${s.provider === 'anthropic' ? 'Anthropic (Claude has no image generation API)' : 'a custom endpoint'}. Switch the provider to OpenAI or Gemini in Settings to use Painter.`);
 }
 function Painter() {
@@ -126,6 +127,12 @@ export async function transcribe(blob: Blob, live: string): Promise<string> {
     const fd = new FormData(); fd.append('file', blob, 'rec.webm'); fd.append('model', 'whisper-1');
     const r = await fetch('https://api.openai.com/v1/audio/transcriptions', { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: fd });
     if (r.ok) return (await r.json()).text as string;
+  }
+  if (s.provider === 'groq' && key) {
+    const fd = new FormData(); fd.append('file', blob, blob.type.includes('wav') ? 'rec.wav' : 'rec.webm'); fd.append('model', 'whisper-large-v3-turbo');
+    const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: fd });
+    if (r.ok) return (await r.json()).text as string;
+    if (!live.trim()) throw new Error(`Groq Whisper error ${r.status}: ${(await r.text()).slice(0, 160)}`);
   }
   if (s.provider === 'gemini' && key && blob.size < 15e6) {
     const r = runLLM([{ role: 'user', text: 'Transcribe this audio verbatim. Output only the transcript.', images: [await blobToDataUrl(blob)] }], () => {});
