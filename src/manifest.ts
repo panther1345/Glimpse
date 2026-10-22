@@ -9,7 +9,7 @@ const manifest = {
   background: { service_worker: 'sw.js', type: 'module' },
   side_panel: { default_path: 'sidepanel.html' },
   options_page: 'options.html',
-  permissions: ['sidePanel', 'activeTab', 'scripting', 'storage', 'contextMenus'],
+  permissions: ['sidePanel', 'activeTab', 'scripting', 'storage', 'contextMenus', 'tabCapture'],
   host_permissions: [...(process.env.GLIMPSE_QA ? ['<all_urls>'] : []), 'https://api.openai.com/*', 'https://api.anthropic.com/*', 'https://generativelanguage.googleapis.com/*'],
   optional_host_permissions: ['<all_urls>', 'http://*/*', 'https://*/*'],
   content_scripts: [{ matches: ['<all_urls>'], js: ['content/launcher.js', 'content/selection.js', 'content/popup.js'], run_at: 'document_idle' }],
