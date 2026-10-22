@@ -13,7 +13,7 @@ export default defineConfig({
   build: {
     outDir: 'dist', emptyOutDir: true, target: 'chrome114', modulePreload: false,
     rollupOptions: {
-      input: { sidepanel: resolve(__dirname, 'sidepanel.html'), options: resolve(__dirname, 'options.html'), sw: resolve(__dirname, 'src/background/sw.ts') },
+      input: { sidepanel: resolve(__dirname, 'sidepanel.html'), options: resolve(__dirname, 'options.html'), mic: resolve(__dirname, 'mic.html'), sw: resolve(__dirname, 'src/background/sw.ts') },
       output: { entryFileNames: (c) => (c.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
     },
   },

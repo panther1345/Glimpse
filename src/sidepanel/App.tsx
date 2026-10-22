@@ -7,13 +7,21 @@ import { Markdown } from './Markdown';
 import { History } from './History';
 import { toast } from './toast';
 import * as I from './icons';
+import { ToolMenu, ToolView, type ToolId } from './tools/Tools';
+import { dictate, ensureMic, speechSupported } from './tools/speech';
+import { speakText } from './tools/say';
 
 const newChat = (): Chat => ({ id: crypto.randomUUID(), title: '', createdAt: Date.now(), updatedAt: Date.now(), model: '', messages: [] });
 const openOptions = () => chrome.runtime.openOptionsPage();
 
 export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [view, setView] = useState<'chat' | 'history'>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'tools'>('chat');
+  const [tool, setTool] = useState<ToolId | null>(null);
+  const [hands, setHands] = useState(false);
+  const [interim, setInterim] = useState('');
+  const recRef = useRef<{ stop: () => void } | null>(null);
+  const handsRef = useRef(false); handsRef.current = hands;
   const [chat, setChat] = useState<Chat>(newChat);
   const [input, setInput] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -153,6 +161,27 @@ export function App() {
   const copy = (t: string) => { navigator.clipboard.writeText(t).then(() => toast('Copied')); };
   const startNew = () => { stop(); setChat(newChat()); setError(null); setNotice(null); setView('chat'); };
 
+  // Hand: hands-free voice chat (dictate -> send -> read answer aloud -> listen again)
+  const listen = async () => {
+    if (!speechSupported()) { setNotice('Voice input is not supported in this browser.'); setHands(false); return; }
+    if (!(await ensureMic())) { setNotice('Allow the microphone in the tab that opened, then press the mic again.'); setHands(false); return; }
+    let said = '';
+    recRef.current = dictate({ continuous: false, onText: (f, i) => { said = f; setInterim(f + ' ' + i); },
+      onError: (m) => { setNotice(m); setHands(false); },
+      onEnd: () => { recRef.current = null; setInterim(''); if (said.trim()) sendRef.current(said.trim(), []); else if (handsRef.current) setHands(false); } });
+  };
+  const toggleHands = () => { if (hands) { setHands(false); recRef.current?.stop(); speechSynthesis.cancel(); } else { setView('chat'); setHands(true); listen(); } };
+  const wasStreaming = useRef(false);
+  useEffect(() => {
+    if (wasStreaming.current && !streaming && handsRef.current) {
+      const last = chatRef.current.messages[chatRef.current.messages.length - 1];
+      if (last?.role === 'assistant' && last.text) speakText(last.text, settings?.voice, () => { if (handsRef.current) listen(); });
+      else setHands(false);
+    }
+    wasStreaming.current = streaming;
+  }, [streaming]);
+  const pickTool = (id: ToolId) => { if (id === 'chat') { setTool(null); setView('chat'); } else if (id === 'hand') { setTool(null); if (!hands) toggleHands(); else setView('chat'); } else setTool(id); };
+
   if (!settings) return null;
   return (
     <div className="app">
@@ -167,13 +196,15 @@ export function App() {
           })}
         </select>
         <span className="grow" />
+        <button className={`icon ${view === 'tools' ? 'on' : ''}`} title="Tools menu" onClick={() => { setTool(null); setView(view === 'tools' ? 'chat' : 'tools'); }}>☰</button>
         <button className="icon" title="New chat" onClick={startNew}><I.IcPlus /></button>
         <button className={`icon ${view === 'history' ? 'on' : ''}`} title="History" onClick={() => setView(view === 'history' ? 'chat' : 'history')}><I.IcHistory /></button>
         <button className="icon" title={settings.launcher === false || (settings.launcherHiddenSites || []).length ? 'Show floating button on all sites' : 'Floating button is shown'} onClick={() => saveSettings({ launcher: true, launcherHiddenSites: [] })} style={{ opacity: settings.launcher === false || (settings.launcherHiddenSites || []).length ? 1 : 0.4 }}>👁</button>
         <button className="icon" title="Settings" onClick={openOptions}><I.IcGear /></button>
       </header>
 
-      {view === 'history' ? (
+      {view === 'tools' ? (tool ? <ToolView id={tool} onBack={() => setTool(null)} voice={settings.voice} /> : <ToolMenu onPick={pickTool} />)
+      : view === 'history' ? (
         <History currentId={chat.id} onOpen={(c) => { setChat(c); setError(null); setView('chat'); }} onBack={() => setView('chat')} onDeleted={(id) => { if (id === chat.id || id === '*') setChat(newChat()); }} />
       ) : (
         <>
@@ -226,6 +257,7 @@ export function App() {
           </main>
 
           <footer className="composer">
+            {(hands || interim) && <div className="handbar">✋ <span className="grow">{interim || (streaming ? 'Thinking…' : 'Hands-free on — listening / speaking')}</span><button className="btn" onClick={toggleHands}>Stop</button></div>}
             {askAccess && (
               <div className="notice access">
                 <span>Glimpse needs access to this page to take a screenshot. Chrome will ask once.</span>
@@ -242,6 +274,7 @@ export function App() {
               onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
             <div className="tools">
+              <button className={`icon ${hands ? 'rec' : ''}`} title="Hand: hands-free voice chat" onClick={toggleHands}>🎤</button>
               <button className="icon" title="Screenshot a region (Alt+Shift+S)" onClick={() => capture('region')}><I.IcCrop /></button>
               <button className="icon" title="Screenshot full visible tab (Alt+Shift+F)" onClick={() => capture('tab')}><I.IcTab /></button>
               <label className="icon" title="Attach image"><I.IcImage /><input type="file" accept="image/*" multiple hidden onChange={onFile} /></label>
