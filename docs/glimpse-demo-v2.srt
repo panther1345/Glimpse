@@ -1,0 +1,55 @@
+1
+00:00:00,300 --> 00:00:04,200
+Glimpse: what's new. Here are the newer features, with the real extension.
+
+2
+00:00:04,800 --> 00:00:11,200
+Theme: choose Dark, Light or System in Settings.
+The answer cards, side panel and options all follow it.
+
+3
+00:00:11,800 --> 00:00:20,200
+The side menu now has 13 tools: Chat, Hand, Code, REC Note,
+Translate, Summarize, ChatPDF, Write, Painter, OCR,
+Grammar, Email Reply and Text to Speech.
+
+4
+00:00:20,800 --> 00:00:29,200
+New Groq provider: paste your key (it stays hidden)...
+...and the model list loads straight from your own key.
+
+5
+00:00:29,800 --> 00:00:36,200
+Copy any text (Ctrl+C) and the answer card opens
+to explain it, right where you are reading.
+
+6
+00:00:36,800 --> 00:00:46,200
+Answer from screenshot: a floating card you can drag around.
+Pin it, rate the answer with thumbs up or down,
+and use the camera button to snap a region.
+
+7
+00:00:46,800 --> 00:00:53,200
+Web Control, scraping: ask in plain words and Glimpse
+extracts tables, links and prices, ready as CSV or JSON.
+
+8
+00:00:53,800 --> 00:01:01,200
+Web Control, auto form fill: Glimpse fills the form from your profile.
+You preview it and press submit yourself.
+
+9
+00:01:01,800 --> 00:01:11,200
+Take over browser: it asks your permission first.
+While it works you get a glowing border, a status pill
+with a Stop button, and a live step log.
+
+10
+00:01:11,800 --> 00:01:19,200
+Press Stop at any time. When it finishes, you get the result,
+here 18 laptops with names and prices.
+
+11
+00:01:19,800 --> 00:01:23,700
+Try it: github.com/panther1345/Glimpse

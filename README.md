@@ -12,6 +12,12 @@ Glimpse is a Chrome (Manifest V3) extension. Grab a region of the tab, select so
 
 Video file: [`docs/glimpse-demo.mp4`](docs/glimpse-demo.mp4) (about 49 s, English subtitles burned in; captions also in [`docs/glimpse-demo.srt`](docs/glimpse-demo.srt))
 
+## New features demo
+
+[![Watch the new features demo](docs/images/video-thumb-v2.png)](docs/glimpse-demo-v2.mp4)
+
+Video file: [`docs/glimpse-demo-v2.mp4`](docs/glimpse-demo-v2.mp4) (about 84 s, English captions burned in; captions also in [`docs/glimpse-demo-v2.srt`](docs/glimpse-demo-v2.srt)). It walks through the Dark/Light/System theme, the 13 side-menu tools, Web Control (scraping and auto form fill), the "Take over browser" agent, the Groq provider, copy-to-explain, and the floating "Answer from screenshot" card. It is built from real screenshots of the extension running, with captions.
+
 ---
 
 ## Features
